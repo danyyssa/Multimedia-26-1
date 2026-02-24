@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Texto a Voz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+      background: #f0f4f8;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #btn-speak  { background: #4CAF50; color: white; }
+    #btn-pause  { background: #2196F3; color: white; }
+    #btn-stop   { background: #f44336; color: white; }
+    #btn-mic    { background: #673AB7; color: white; }
+    #output-area {
+      margin-top: 15px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 8px;
+      min-height: 40px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🔊 Texto a Voz Inteligente</h2>
+
+  <textarea id="input-area" placeholder="Escribe algo o usa el micrófono..."></textarea>
+
+  <div class="buttons">
+    <button id="btn-speak" onclick="speakTextFromInput()">▶ Reproducir</button>
+    <button id="btn-pause" onclick="togglePause()">⏸ Pausar</button>
+    <button id="btn-stop" onclick="stopSpeech()">⏹ Detener</button>
+    <button id="btn-mic" onclick="startListening()">🎤 Hablar</button>
+  </div>
+
+  <div id="output-area">Esperando acción...</div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    const outputArea = document.getElementById('output-area');
+    const inputArea = document.getElementById('input-area');
+    let voices = [];
+
+    function loadVoices() {
+      voices = synth.getVoices();
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    // =====================
+    // TEXTO A VOZ
+    // =====================
+
+    function speak(text) {
+      synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const spanishVoice = voices.find(v => v.lang.startsWith('es'));
+
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+      }
+
+      utterance.rate = 1;
+      utterance.pitch = 1;
+
+      utterance.onstart = () => outputArea.innerHTML = "🔊 Reproduciendo...";
+      utterance.onend = () => outputArea.innerHTML = "✅ Listo.";
+
+      synth.speak(utterance);
+    }
+
+    function speakTextFromInput() {
+      const text = inputArea.value.trim();
+
+      if (!text) {
+        outputArea.innerHTML = "⚠️ Escribe algo primero.";
+        return;
+      }
+
+      speak(text);
+    }
+
+    function togglePause() {
+      if (synth.paused) {
+        synth.resume();
+        outputArea.innerHTML = "🔊 Reproduciendo...";
+      } else if (synth.speaking) {
+        synth.pause();
+        outputArea.innerHTML = "⏸ Pausado.";
+      }
+    }
+
+    function stopSpeech() {
+      synth.cancel();
+      outputArea.innerHTML = "⏹ Detenido.";
+    }
+
+    // =====================
+    // RECONOCIMIENTO DE VOZ
+    // =====================
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Usa Google Chrome para reconocimiento de voz.");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-ES";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    function startListening() {
+      recognition.start();
+      outputArea.innerHTML = "🎤 Escuchando...";
+    }
+
+    recognition.onresult = function(event) {
+      const text = event.results[0][0].transcript;
+      inputArea.value = text;
+      processVoiceCommand(text);
+    };
+
+    recognition.onerror = function() {
+      outputArea.innerHTML = "❌ Error en reconocimiento.";
+    };
+
+    function processVoiceCommand(text) {
+      const lowerText = text.toLowerCase();
+
+      if (
+        lowerText.includes("qué hora es") ||
+        lowerText.includes("que hora es") ||
+        lowerText.includes("hora")
+      ) {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+
+        const response = `Son las ${hours} con ${minutes} minutos.`;
+        speak(response);
+      } else {
+        speak("No entendí el comando.");
+      }
+    }
+  </script>
+
+</body>
+</html>

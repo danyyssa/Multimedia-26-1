@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Texto a Voz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+      background: #f0f4f8;
+    }
+    h2 {
+      text-align: center;
+      color: #333;
+    }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 12px;
+      font-size: 16px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      resize: vertical;
+      box-sizing: border-box;
+    }
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    button {
+      flex: 1;
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #btn-speak  { background: #4CAF50; color: white; }
+    #btn-pause  { background: #2196F3; color: white; }
+    #btn-stop   { background: #f44336; color: white; }
+    button:hover { opacity: 0.85; }
+    #output-area {
+      margin-top: 15px;
+      padding: 10px;
+      background: #fff;
+      border-radius: 8px;
+      color: #444;
+      min-height: 40px;
+      border: 1px solid #ddd;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🔊 Texto a Voz</h2>
+
+  <textarea id="input-area" placeholder="Escribe aquí el texto que quieres escuchar..."></textarea>
+
+  <div class="buttons">
+    <button id="btn-speak" onclick="speak()">▶ Reproducir</button>
+    <button id="btn-pause" onclick="togglePause()">⏸ Pausar</button>
+    <button id="btn-stop"  onclick="stopSpeech()">⏹ Detener</button>
+  </div>
+
+  <div id="output-area">El estado aparecerá aquí...</div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    const outputArea = document.getElementById('output-area');
+    let voices = [];
+
+    // Cargar voces disponibles y seleccionar español automáticamente
+    function loadVoices() {
+      voices = synth.getVoices();
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    function speak() {
+      const text = document.getElementById('input-area').value.trim();
+
+      if (!text) {
+        outputArea.innerHTML = '⚠️ Escribe algún texto primero.';
+        return;
+      }
+
+      synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+
+      // Buscar voz en español
+      const spanishVoice = voices.find(v => v.lang.startsWith('es'));
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+      }
+
+      // Valores fijos
+      utterance.rate  = 1;   // Velocidad normal
+      utterance.pitch = 1;   // Tono normal
+
+      utterance.onstart = () => outputArea.innerHTML = '🔊 Reproduciendo...';
+      utterance.onend   = () => outputArea.innerHTML = '✅ Lectura completada.';
+      utterance.onerror = (e) => outputArea.innerHTML = `❌ Error: ${e.error}`;
+
+      synth.speak(utterance);
+    }
+
+    function togglePause() {
+      if (synth.paused) {
+        synth.resume();
+        outputArea.innerHTML = '🔊 Reproduciendo...';
+      } else if (synth.speaking) {
+        synth.pause();
+        outputArea.innerHTML = '⏸ Pausado.';
+      }
+    }
+
+    function stopSpeech() {
+      synth.cancel();
+      outputArea.innerHTML = '⏹ Detenido.';
+    }
+  </script>
+
+</body>
+</html>
