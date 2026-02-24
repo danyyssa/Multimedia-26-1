@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asistente de Voz</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 60px auto;
+      padding: 20px;
+      background: #f0f4f8;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      height: 120px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 2px solid #ccc;
+      resize: none;
+    }
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      width: 100%;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    #btn-mic {
+      background: #673AB7;
+      color: white;
+    }
+    #btn-stop {
+      background: #f44336;
+      color: white;
+    }
+    #output-area {
+      margin-top: 20px;
+      padding: 10px;
+      background: white;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      min-height: 40px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>🎤 Asistente de Voz</h2>
+
+  <textarea id="input-area" placeholder="Aquí aparecerá lo que digas..."></textarea>
+
+  <button id="btn-mic" onclick="startListening()">🎙 Hablar</button>
+  <button id="btn-stop" onclick="stopSpeech()">⏹ Detener Voz</button>
+
+  <div id="output-area">Esperando comando...</div>
+
+  <script>
+    const synth = window.speechSynthesis;
+    const outputArea = document.getElementById('output-area');
+    const inputArea = document.getElementById('input-area');
+
+    let voices = [];
+
+    function loadVoices() {
+      voices = synth.getVoices();
+    }
+
+    speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    // =============================
+    // RECONOCIMIENTO DE VOZ
+    // =============================
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      alert("Tu navegador no soporta reconocimiento de voz. Usa Google Chrome.");
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "es-ES";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    function startListening() {
+      recognition.start();
+      outputArea.innerHTML = "🎤 Escuchando...";
+    }
+
+    recognition.onresult = function(event) {
+      const text = event.results[0][0].transcript;
+      inputArea.value = text;
+      outputArea.innerHTML = "📝 Reconocido: " + text;
+
+      processCommand(text);
+    };
+
+    recognition.onerror = function(event) {
+      outputArea.innerHTML = "❌ Error de reconocimiento.";
+    };
+
+    // =============================
+    // PROCESAR COMANDO
+    // =============================
+
+    function processCommand(text) {
+      const lowerText = text.toLowerCase();
+
+      if (
+        lowerText.includes("qué hora es") ||
+        lowerText.includes("que hora es") ||
+        lowerText.includes("hora actual") ||
+        lowerText.includes("dime la hora")
+      ) {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+
+        const response = `Son las ${hours} con ${minutes} minutos.`;
+        speak(response);
+      } else {
+        speak("No entendí la pregunta. Intenta preguntar la hora.");
+      }
+    }
+
+    // =============================
+    // VOZ SINTETIZADA
+    // =============================
+
+    function speak(text) {
+      synth.cancel();
+
+      const utterance = new SpeechSynthesisUtterance(text);
+      const spanishVoice = voices.find(v => v.lang.startsWith("es"));
+
+      if (spanishVoice) {
+        utterance.voice = spanishVoice;
+      }
+
+      utterance.rate = 1;
+      utterance.pitch = 1;
+
+      utterance.onstart = () => outputArea.innerHTML = "🔊 Hablando...";
+      utterance.onend = () => outputArea.innerHTML = "✅ Listo.";
+
+      synth.speak(utterance);
+    }
+
+    function stopSpeech() {
+      synth.cancel();
+      outputArea.innerHTML = "⏹ Voz detenida.";
+    }
+  </script>
+
+</body>
+</html>
+
